@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum Goal {
+  CUT
+  MAINTAIN
+  BULK
+}
+
+enum Units {
+  IMPERIAL
+  METRIC
+}
+
+enum Meal {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum ExerciseKind {
+  STRENGTH
+  CARDIO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+
+  onboarded    Boolean   @default(false)
+  sex          Sex?
+  birthDate    DateTime?
+  heightCm     Float?
+  units        Units     @default(IMPERIAL)
+  goal         Goal      @default(MAINTAIN)
+  /// Magnitude of the weekly weight change the user is aiming for, in kg.
+  weeklyRateKg Float     @default(0)
+  goalWeightKg Float?
+
+  weights   WeightEntry[]
+  foods     FoodEntry[]
+  savedFood SavedFood[]
+  steps     StepEntry[]
+  exercises Exercise[]
+  workouts  Workout[]
+}
+
+/// Dates are stored as local calendar days ("YYYY-MM-DD") so a log always
+/// belongs to the day the user saw on their screen, whatever the timezone.
+model WeightEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String
+  weightKg  Float
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model SavedFood {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Normalized lookup key, see lib/text.ts normalizeKey().
+  key          String
+  name         String
+  servingDesc  String
+  calories     Float
+  protein      Float
+  carbs        Float
+  fat          Float
+  fiber        Float    @default(0)
+  sugar        Float    @default(0)
+  sodium       Float    @default(0)
+  timesLogged  Int      @default(0)
+  lastUsedAt   DateTime @default(now())
+  entries      FoodEntry[]
+
+  @@unique([userId, key])
+  @@index([userId, lastUsedAt])
+}
+
+model FoodEntry {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        String
+  meal        Meal
+  name        String
+  servingDesc String
+  /// Number of servings eaten; nutrition columns are already multiplied by it.
+  servings    Float      @default(1)
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  fiber       Float      @default(0)
+  sugar       Float      @default(0)
+  sodium      Float      @default(0)
+  savedFoodId String?
+  savedFood   SavedFood? @relation(fields: [savedFoodId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+
+  @@index([userId, date])
+}
+
+model StepEntry {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   String
+  steps  Int
+
+  @@unique([userId, date])
+}
+
+model Exercise {
+  id     String         @id @default(cuid())
+  userId String
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key    String
+  name   String
+  kind   ExerciseKind
+  met    Float
+  sets   WorkoutSet[]
+
+  @@unique([userId, key])
+}
+
+model Workout {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           String
+  name           String
+  durationMin    Float
+  caloriesBurned Float
+  notes          String?
+  createdAt      DateTime     @default(now())
+  sets           WorkoutSet[]
+
+  @@index([userId, date])
+}
+
+model WorkoutSet {
+  id          String   @id @default(cuid())
+  workoutId   String
+  workout     Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order       Int
+  reps        Int?
+  weightKg    Float?
+  durationMin Float?
+  distanceKm  Float?
+}
