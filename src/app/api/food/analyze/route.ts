@@ -64,11 +64,21 @@ export async function POST(req: Request) {
     const result = await analyzeFood(input);
     return NextResponse.json({ source: "ai", ...result });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Something went wrong";
-    const status = message.includes("ANTHROPIC_API_KEY") ? 503 : 502;
+    // Log the real error for the server logs, but never show it to users: SDK errors can echo request headers.
+    console.error("Food analysis failed", e);
+    const message = e instanceof Error ? e.message : "";
+    if (message.includes("ANTHROPIC_API_KEY")) {
+      return NextResponse.json({ error: "Food analysis isn't set up yet. Add an ANTHROPIC_API_KEY to the server's environment." }, { status: 503 });
+    }
+    const status = typeof e === "object" && e && "status" in e ? (e as { status?: number }).status : undefined;
+    const invalidKey = status === 401 || status === 403 || /header/i.test(message);
     return NextResponse.json(
-      { error: status === 503 ? "Food analysis isn't set up yet. Add an ANTHROPIC_API_KEY to the server's environment." : message },
-      { status },
+      {
+        error: invalidKey
+          ? "Food analysis is misconfigured: the server's ANTHROPIC_API_KEY isn't a valid key."
+          : "Couldn't analyze that right now. Try again in a moment.",
+      },
+      { status: invalidKey ? 503 : 502 },
     );
   }
 }
