@@ -48,6 +48,15 @@ Food analysis needs an `ANTHROPIC_API_KEY` from https://console.anthropic.com. E
 
 ## Deploying
 
+### Vercel (easiest)
+
+1. Go to https://vercel.com/new and import the `ALLIN1` repo. Don't deploy yet.
+2. In the new project, open **Storage → Create Database → Neon (Postgres)** and connect it. This sets `DATABASE_URL` for you.
+3. In **Settings → Environment Variables**, add `AUTH_SECRET` (any long random string) and `ANTHROPIC_API_KEY`.
+4. Deploy. The `vercel-build` script applies database migrations before building, so tables are created automatically. Every pull request also gets its own preview URL.
+
+### Anywhere else
+
 Any Node host works (Vercel, Railway, Render, Fly). You need:
 
 1. A Postgres database (Neon, Supabase, Railway, etc.) — set `DATABASE_URL`.
