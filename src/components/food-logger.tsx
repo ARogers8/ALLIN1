@@ -5,6 +5,7 @@ import { Camera, Check, History, Loader2, Minus, PenLine, Plus, RotateCcw, Spark
 import clsx from "clsx";
 import { logFoods, logSavedFood } from "@/app/actions/logs";
 import { normalizeKey } from "@/lib/text";
+import { actionErrorMessage } from "@/lib/action-error";
 import { MEALS, type MealKey } from "@/lib/meals";
 import { Badge, Button, Input } from "./ui";
 
@@ -178,38 +179,47 @@ export function FoodLogger({ date, saved, defaultMeal }: { date: string; saved: 
 
   function save() {
     if (!items.length) return;
+    setError(null);
     start(async () => {
-      const res = await logFoods({
-        date,
-        meal,
-        servings,
-        phrase: image ? undefined : text,
-        items: items.map((i) => ({
-          name: i.name,
-          servingDesc: i.servingDescription,
-          calories: i.calories,
-          protein: i.protein_g,
-          carbs: i.carbs_g,
-          fat: i.fat_g,
-          fiber: i.fiber_g,
-          sugar: i.sugar_g,
-          sodium: i.sodium_mg,
-        })),
-      });
-      if (res?.ok) {
-        flash(`Added to ${MEALS.find((m) => m.key === meal)!.label.toLowerCase()}`);
-        reset();
+      try {
+        const res = await logFoods({
+          date,
+          meal,
+          servings,
+          phrase: image ? undefined : text,
+          items: items.map((i) => ({
+            name: i.name,
+            servingDesc: i.servingDescription,
+            calories: i.calories,
+            protein: i.protein_g,
+            carbs: i.carbs_g,
+            fat: i.fat_g,
+            fiber: i.fiber_g,
+            sugar: i.sugar_g,
+            sodium: i.sodium_mg,
+          })),
+        });
+        if (res?.ok) {
+          flash(`Added to ${MEALS.find((m) => m.key === meal)!.label.toLowerCase()}`);
+          reset();
+        }
+      } catch (e) {
+        setError(actionErrorMessage(e));
       }
     });
   }
 
   function quickAdd(s: SavedFoodLite, n: number) {
     start(async () => {
-      const res = await logSavedFood({ date, meal, savedFoodId: s.id, servings: n });
-      if (res && "ok" in res) {
-        flash(`${s.name} added`);
-        setText("");
-      } else if (res && "error" in res) setError(res.error ?? null);
+      try {
+        const res = await logSavedFood({ date, meal, savedFoodId: s.id, servings: n });
+        if (res && "ok" in res) {
+          flash(`${s.name} added`);
+          setText("");
+        } else if (res && "error" in res) setError(res.error ?? null);
+      } catch (e) {
+        setError(actionErrorMessage(e));
+      }
     });
   }
 
@@ -544,15 +554,19 @@ function ManualEntry({ date, meal, onDone }: { date: string; meal: MealKey; onDo
         if (!name) return setError("Give it a name");
         const form = e.currentTarget;
         start(async () => {
-          await logFoods({
-            date,
-            meal,
-            phrase: name,
-            items: [{ name, servingDesc: String(f.get("serving") || ""), calories: num("calories"), protein: num("protein"), carbs: num("carbs"), fat: num("fat") }],
-          });
-          form.reset();
-          setError(null);
-          onDone(name);
+          try {
+            await logFoods({
+              date,
+              meal,
+              phrase: name,
+              items: [{ name, servingDesc: String(f.get("serving") || ""), calories: num("calories"), protein: num("protein"), carbs: num("carbs"), fat: num("fat") }],
+            });
+            form.reset();
+            setError(null);
+            onDone(name);
+          } catch (e) {
+            setError(actionErrorMessage(e));
+          }
         });
       }}
     >

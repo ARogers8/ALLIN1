@@ -68,8 +68,9 @@ export async function logSteps(date: string, steps: number) {
 
 const Meal = z.enum(["BREAKFAST", "LUNCH", "DINNER", "SNACK"]);
 const Nutrition = z.object({
-  name: z.string().trim().min(1).max(120),
-  servingDesc: z.string().trim().max(300).default(""),
+  // Long AI descriptions are trimmed to fit rather than rejected, so a wordy answer can't fail the save.
+  name: z.string().trim().min(1).transform((v) => v.slice(0, 120)),
+  servingDesc: z.string().trim().default("").transform((v) => v.slice(0, 300)),
   calories: z.number().min(0).max(20_000),
   protein: z.number().min(0).max(2000),
   carbs: z.number().min(0).max(3000),
