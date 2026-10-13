@@ -36,11 +36,13 @@ enum ExerciseKind {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  createdAt    DateTime @default(now())
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  createdAt       DateTime  @default(now())
+  /// Null until the user enters the code emailed to them at sign-up.
+  emailVerifiedAt DateTime?
 
   onboarded    Boolean   @default(false)
   sex          Sex?
@@ -52,12 +54,13 @@ model User {
   weeklyRateKg Float     @default(0)
   goalWeightKg Float?
 
-  weights   WeightEntry[]
-  foods     FoodEntry[]
-  savedFood SavedFood[]
-  steps     StepEntry[]
-  exercises Exercise[]
-  workouts  Workout[]
+  emailCodes EmailCode[]
+  weights    WeightEntry[]
+  foods      FoodEntry[]
+  savedFood  SavedFood[]
+  steps      StepEntry[]
+  exercises  Exercise[]
+  workouts   Workout[]
 }
 
 /// Dates are stored as local calendar days ("YYYY-MM-DD") so a log always
@@ -74,23 +77,23 @@ model WeightEntry {
 }
 
 model SavedFood {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Normalized lookup key, see lib/text.ts normalizeKey().
-  key          String
-  name         String
-  servingDesc  String
-  calories     Float
-  protein      Float
-  carbs        Float
-  fat          Float
-  fiber        Float    @default(0)
-  sugar        Float    @default(0)
-  sodium       Float    @default(0)
-  timesLogged  Int      @default(0)
-  lastUsedAt   DateTime @default(now())
-  entries      FoodEntry[]
+  key         String
+  name        String
+  servingDesc String
+  calories    Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  fiber       Float       @default(0)
+  sugar       Float       @default(0)
+  sodium      Float       @default(0)
+  timesLogged Int         @default(0)
+  lastUsedAt  DateTime    @default(now())
+  entries     FoodEntry[]
 
   @@unique([userId, key])
   @@index([userId, lastUsedAt])
@@ -131,9 +134,9 @@ model StepEntry {
 }
 
 model Exercise {
-  id     String         @id @default(cuid())
+  id     String       @id @default(cuid())
   userId String
-  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   key    String
   name   String
   kind   ExerciseKind
@@ -169,4 +172,17 @@ model WorkoutSet {
   weightKg    Float?
   durationMin Float?
   distanceKm  Float?
+}
+
+/// One-time sign-up verification code. Only a hash of the code is stored.
+model EmailCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

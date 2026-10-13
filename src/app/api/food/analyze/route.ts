@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { currentUserId } from "@/lib/auth";
+import { currentUser, needsVerification } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { normalizeKey } from "@/lib/text";
 import { analyzeFood } from "@/lib/nutrition-ai";
@@ -22,8 +22,10 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
-  const userId = await currentUserId();
-  if (!userId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const user = await currentUser();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  if (needsVerification(user)) return NextResponse.json({ error: "Verify your email first" }, { status: 403 });
+  const userId = user.id;
 
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
