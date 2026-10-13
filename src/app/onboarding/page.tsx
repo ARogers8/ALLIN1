@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@/lib/auth";
+import { currentUser, needsVerification } from "@/lib/auth";
 import { profileDefaults } from "@/lib/profile-defaults";
 import { ProfileForm } from "@/components/profile-form";
 import { Logo } from "@/components/ui";
@@ -9,6 +9,7 @@ export const metadata = { title: "Set up your profile" };
 export default async function OnboardingPage() {
   const user = await currentUser();
   if (!user) redirect("/login");
+  if (needsVerification(user)) redirect("/verify");
   if (user.onboarded) redirect("/dashboard");
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-16">

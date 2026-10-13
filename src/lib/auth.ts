@@ -5,6 +5,7 @@ import { cache } from "react";
 import { db } from "./db";
 import { SESSION_COOKIE, SESSION_DAYS, signSession, verifySession } from "./session";
 import { todayKey } from "./dates";
+import { verificationEnabled } from "./email-verification";
 
 export async function startSession(userId: string) {
   const token = await signSession(userId);
@@ -34,10 +35,15 @@ export const currentUser = cache(async () => {
 export type AppUser = NonNullable<Awaited<ReturnType<typeof currentUser>>>;
 export type ProfiledUser = AppUser & { sex: "MALE" | "FEMALE"; birthDate: Date; heightCm: number };
 
+export function needsVerification(user: { emailVerifiedAt: Date | null }): boolean {
+  return verificationEnabled() && !user.emailVerifiedAt;
+}
+
 /** For pages behind login: redirects to /login, or to /onboarding until the profile is complete. */
 export async function requireUser(): Promise<ProfiledUser> {
   const user = await currentUser();
   if (!user) redirect("/login");
+  if (needsVerification(user)) redirect("/verify");
   if (!user.onboarded || !user.sex || !user.birthDate || !user.heightCm) redirect("/onboarding");
   return user as ProfiledUser;
 }

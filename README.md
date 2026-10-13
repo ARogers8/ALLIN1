@@ -46,6 +46,14 @@ Open http://localhost:3000. The demo account is `demo@allin1.app` / `demo1234`.
 
 Food analysis needs an `ANTHROPIC_API_KEY` from https://console.anthropic.com. Everything else (manual food entry, saved foods, workouts, steps, weight) works without it.
 
+## Email verification
+
+When `RESEND_API_KEY` is set, new accounts must enter a 6-digit code emailed to them before they can use the app. Codes expire after 15 minutes, allow 5 tries, and can be resent once a minute. Without the key, sign-up skips this step, and accounts created before verification was added count as verified.
+
+1. Create a free account at https://resend.com (3,000 emails a month free) and make an API key.
+2. Add `RESEND_API_KEY` in Vercel's Environment Variables and redeploy.
+3. To email anyone (not just your own Resend account address), add your domain under **Domains** in Resend, add the DNS records it shows, then set `EMAIL_FROM` to something like `ALLIN1 <hello@yourdomain.com>`.
+
 ## Deploying
 
 ### Vercel (easiest)
